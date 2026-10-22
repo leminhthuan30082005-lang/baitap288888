@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Game Kiểm Tra Tốc Độ Phản Xạ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    padding: 20px;
+  }
+  h1 { margin-bottom: 20px; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  
+  #info {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 15px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+  #info span { color: #ffd700; }
+  
+  #arena {
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(circle at 30% 30%, #2c3e50, #1a252f);
+    border: 3px solid #ffd700;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+    box-shadow: 0 0 30px rgba(255, 215, 0, .3);
+  }
+  
+  #target {
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
+    border-radius: 50%;
+    position: absolute;
+    display: none;
+    cursor: pointer;
+    box-shadow: 0 0 15px #ff4757, inset -5px -5px 10px rgba(0,0,0,.3);
+    transition: transform .05s;
+  }
+  #target:active { transform: scale(.9); }
+  
+  #startBtn {
+    margin-top: 20px;
+    padding: 14px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    color: #1a252f;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(255,140,0,.5);
+    transition: transform .15s;
+  }
+  #startBtn:hover { transform: translateY(-2px); }
+  #startBtn:disabled {
+    background: #555;
+    color: #999;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  
+  #gameOver {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    gap: 15px;
+  }
+  #gameOver .score { color: #ffd700; font-size: 60px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>⚡ Kiểm Tra Tốc Độ Phản Xạ</h1>
+
+<div id="info">
+  <div>Điểm: <span id="score">0</span></div>
+  <div>Thời gian: <span id="timer">30</span>s</div>
+</div>
+
+<div id="arena">
+  <div id="target"></div>
+  <div id="gameOver">
+    <div>🏁 Hết giờ!</div>
+    <div>Tổng điểm: <span class="score" id="finalScore">0</span></div>
+  </div>
+</div>
+
+<button id="startBtn">▶ Bắt đầu trò chơi</button>
+
+<script>
+  const arena     = document.getElementById('arena');
+  const target    = document.getElementById('target');
+  const scoreEl   = document.getElementById('score');
+  const timerEl   = document.getElementById('timer');
+  const startBtn  = document.getElementById('startBtn');
+  const gameOver  = document.getElementById('gameOver');
+  const finalScore= document.getElementById('finalScore');
+
+  const GAME_TIME = 30;          // giây
+  const TARGET_SIZE = 50;        // px
+  const MOVE_INTERVAL = 1000;    // 1 giây đổi vị trí
+
+  let score = 0;
+  let timeLeft = GAME_TIME;
+  let timerInterval = null;
+  let moveInterval = null;
+  let isPlaying = false;
+
+  // Sinh vị trí ngẫu nhiên trong arena
+  function randomPosition() {
+    const maxX = arena.clientWidth  - TARGET_SIZE;
+    const maxY = arena.clientHeight - TARGET_SIZE;
+    const left = Math.floor(Math.random() * maxX);
+    const top  = Math.floor(Math.random() * maxY);
+    target.style.left = left + 'px';
+    target.style.top  = top  + 'px';
+  }
+
+  // Đặt mục tiêu tại vị trí ngẫu nhiên
+  function spawnTarget() {
+    randomPosition();
+    target.style.display = 'block';
+  }
+
+  // Bắt đầu game
+  function startGame() {
+    if (isPlaying) return;
+    isPlaying = true;
+    score = 0;
+    timeLeft = GAME_TIME;
+    scoreEl.textContent = score;
+    timerEl.textContent = timeLeft;
+    gameOver.style.display = 'none';
+    startBtn.disabled = true;
+    spawnTarget();
+
+    // Đếm ngược
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timerEl.textContent = timeLeft;
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+
+    // Tự di chuyển mục tiêu mỗi 1 giây
+    moveInterval = setInterval(() => {
+      if (isPlaying) randomPosition();
+    }, MOVE_INTERVAL);
+  }
+
+  // Kết thúc game
+  function endGame() {
+    isPlaying = false;
+    clearInterval(timerInterval);
+    clearInterval(moveInterval);
+    target.style.display = 'none';
+    finalScore.textContent = score;
+    gameOver.style.display = 'flex';
+    startBtn.disabled = false;
+    startBtn.textContent = '🔄 Chơi lại';
+  }
+
+  // Click trúng mục tiêu
+  target.addEventListener('click', (e) => {
+    if (!isPlaying) return;
+    e.stopPropagation();
+    score++;
+    scoreEl.textContent = score;
+    randomPosition();  // đổi vị trí ngay lập tức
+  });
+
+  // Bắt đầu khi bấm nút
+  startBtn.addEventListener('click', startGame);
+</script>
+
+</body>
+</html>
